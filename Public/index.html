@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Digiskill Academy — Workshop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>Digiskill Academy</h1>
+      <p class="subtitle">4-week live workshop — Saturdays & Sundays — Starts Nov 15, 2025</p>
+      <div class="meta">
+        <div id="priceBox" class="price-box">Loading price...</div>
+        <div id="seatsBox" class="seats-box">Checking seats...</div>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="left">
+        <h2>What you'll learn</h2>
+        <ul>
+          <li>Digital marketing fundamentals</li>
+          <li>SEO, social media, and analytics basics</li>
+          <li>Hands-on live sessions every weekend</li>
+        </ul>
+
+        <h3>Workshop details</h3>
+        <p><strong>Start:</strong> Saturday, November 15, 2025</p>
+        <p><strong>Duration:</strong> 4 weeks (Sat & Sun)</p>
+        <p><strong>Time:</strong> 7:00 PM - 8:30 PM (IST)</p>
+        <p><strong>Platform:</strong> Live Online Sessions</p>
+      </div>
+
+      <aside class="right">
+        <div class="card">
+          <h3 id="formTitle">Enroll now</h3>
+          <form id="regForm">
+            <label>
+              Name
+              <input id="name" name="name" required />
+            </label>
+            <label>
+              Email
+              <input id="email" name="email" type="email" required />
+            </label>
+            <button id="submitBtn" type="submit" disabled>Loading...</button>
+          </form>
+          <div id="message" class="message"></div>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="footer">
+      Questions? Contact us at <a href="mailto:hello@digiskill.example">hello@digiskill.example</a>
+    </footer>
+  </main>
+
+  <script>
+    const apiBase = '/api';
+
+    async function fetchWorkshop() {
+      try {
+        const res = await fetch(`${apiBase}/workshop`);
+        const data = await res.json();
+        return data;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
+
+    function updateUI(data) {
+      const priceBox = document.getElementById('priceBox');
+      const seatsBox = document.getElementById('seatsBox');
+      const submitBtn = document.getElementById('submitBtn');
+      const formTitle = document.getElementById('formTitle');
+
+      const { priceLabel, price, seatsRemaining } = data;
+
+      if (price === 0) {
+        priceBox.textContent = 'Sold Out';
+      } else {
+        priceBox.innerHTML = `<strong>${priceLabel}</strong><br>₹${price.toLocaleString()}`;
+      }
+
+      seatsBox.textContent = `${seatsRemaining} seats remaining`;
+
+      if (seatsRemaining === 0) {
+        submitBtn.textContent = 'Join Waitlist';
+        formTitle.textContent = 'Join Waitlist';
+      } else if (seatsRemaining > 10) {
+        submitBtn.textContent = 'Enroll (Early Bird)';
+      } else {
+        submitBtn.textContent = 'Enroll (Standard)';
+      }
+      submitBtn.disabled = false;
+    }
+
+    async function refresh() {
+      const data = await fetchWorkshop();
+      if (data) updateUI(data);
+    }
+
+    document.getElementById('regForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const messageEl = document.getElementById('message');
+      const submitBtn = document.getElementById('submitBtn');
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      messageEl.textContent = '';
+
+      try {
+        const res = await fetch(`${apiBase}/register`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email })
+        });
+        const body = await res.json();
+
+        if (body.status === 'registered') {
+          messageEl.innerHTML = `✅ Registered!<br>Your Registration ID: <strong>${body.registrationId}</strong><br>Seats left: ${body.seatsRemaining}`;
+        } else if (body.status === 'waitlisted') {
+          messageEl.textContent = body.message;
+        } else if (body.error) {
+          messageEl.textContent = `Error: ${body.error}`;
+        }
+      } catch (err) {
+        console.error(err);
+        messageEl.textContent = 'Something went wrong. Try again.';
+      }
+
+      await refresh();
+      submitBtn.disabled = false;
+    });
+
+    refresh();
+    setInterval(refresh, 10000);
+  </script>
+</body>
+</html>
